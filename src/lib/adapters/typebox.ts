@@ -7,8 +7,9 @@ import {
 	type ClientValidationAdapter
 } from './adapters.js';
 import type { TSchema } from '@sinclair/typebox';
-import type { TypeCheck } from '@sinclair/typebox/compiler';
+import { TypeCheck } from '@sinclair/typebox/compiler';
 import { memoize } from '$lib/memoize.js';
+import { Value } from '@sinclair/typebox/value';
 
 // From https://github.com/sinclairzx81/typebox/tree/ca4d771b87ee1f8e953036c95a21da7150786d3e/example/formats
 const Email =
@@ -24,12 +25,14 @@ const fetchModule = /* @__PURE__ */ memoize(modules);
 
 async function validate<T extends TSchema>(
 	schema: T,
-	data: unknown
+	data: unknown,
+	valueCheckMode: boolean = false
 ): Promise<ValidationResult<Infer<T, 'typebox'>>> {
 	const { TypeCompiler, FormatRegistry } = await fetchModule();
 
 	if (!compiled.has(schema)) {
-		compiled.set(schema, TypeCompiler.Compile<TSchema>(schema));
+		if (!valueCheckMode) compiled.set(schema, TypeCompiler.Compile<TSchema>(schema));
+		else compiled.set(schema, new TypeCheck<TSchema>(schema, [], (value) => Value.Check(schema, [], value), ''));
 	}
 
 	if (!FormatRegistry.Has('email')) {
@@ -53,11 +56,12 @@ async function validate<T extends TSchema>(
 }
 
 function _typebox<T extends TSchema>(
-	schema: T
+	schema: T,
+	valueCheckMode: boolean = false
 ): ValidationAdapter<Infer<T, 'typebox'>, InferIn<T, 'typebox'>> {
 	return createAdapter({
 		superFormValidationLibrary: 'typebox',
-		validate: async (data: unknown) => validate(schema, data),
+		validate: async (data: unknown) => validate(schema, data, valueCheckMode ?? false),
 		jsonSchema: schema
 	});
 }
