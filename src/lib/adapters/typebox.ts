@@ -61,7 +61,7 @@ function _typebox<T extends TSchema>(
 ): ValidationAdapter<Infer<T, 'typebox'>, InferIn<T, 'typebox'>> {
 	return createAdapter({
 		superFormValidationLibrary: 'typebox',
-		validate: async (data: unknown) => validate(schema, data, valueCheckMode ?? false),
+		validate: async (data: unknown) => validate(schema, data, valueCheckMode),
 		jsonSchema: schema
 	});
 }
